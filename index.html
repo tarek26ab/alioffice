@@ -92,7 +92,7 @@
                 <div class="flex gap-2 flex-wrap">
                     <button onclick="switchManagerTab('add-single')" class="bg-slate-900 text-white px-4 py-2 rounded-lg text-sm hover:bg-slate-800"><i class="fa-solid fa-plus ml-1"></i> إدخال قضية</button>
                     <button onclick="switchManagerTab('excel-import')" class="bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-emerald-700"><i class="fa-solid fa-file-excel ml-1"></i> رفع إكسل</button>
-                    <button onclick="switchManagerTab('manage-cases')" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700"><i class="fa-solid fa-pen-to-square ml-1"></i> تعديل ومواعيد</button>
+                    <button onclick="switchManagerTab('manage-cases')" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700"><i class="fa-solid fa-pen-to-square ml-1"></i> تعديل وحذف ومواعيد</button>
                     <button onclick="switchManagerTab('active-cases')" class="bg-purple-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-purple-700"><i class="fa-solid fa-calendar-days ml-1"></i> القضايا النشطة</button>
                 </div>
             </div>
@@ -116,7 +116,7 @@
             <!-- Excel Import -->
             <div id="mgr-excel-import" class="mgr-tab-content bg-white p-6 rounded-xl shadow-sm border">
                 <h3 class="text-lg font-bold mb-2 text-slate-700">إضافة الجلسات دفعة واحدة من ملف إكسل</h3>
-                <p class="text-xs text-gray-500 mb-4">تأكد من أن ملف الإكسل يحتوي على أعمدة باسم (رقم القضية، المدعي، المدعي عليه، تاريخ الجلسة...)</p>
+                <p class="text-xs text-gray-500 mb-4">النظام سيتجاهل القضايا المكررة تلقائياً ولن يتم رفع القضية إذا كانت موجودة مسبقاً.</p>
                 <input type="file" id="excel-file-input" accept=".xlsx, .xls" class="block w-full border p-3 rounded-lg mb-4 bg-gray-50">
                 <button onclick="processExcelUpload()" class="bg-emerald-600 text-white px-6 py-2.5 rounded-lg font-bold hover:bg-emerald-700 transition flex items-center gap-2">
                     <i class="fa-solid fa-cloud-arrow-up"></i>
@@ -128,7 +128,7 @@
             <!-- Manage Cases -->
             <div id="mgr-manage-cases" class="mgr-tab-content bg-white p-6 rounded-xl shadow-sm border">
                 <div class="flex flex-col md:flex-row justify-between items-center mb-4 gap-4">
-                    <h3 class="text-lg font-bold text-slate-700">تعديل القضايا وتحديد موعد جلساتها</h3>
+                    <h3 class="text-lg font-bold text-slate-700">تعديل القضايا وتحديد المواعيد أو الحذف</h3>
                     <div class="relative w-full md:w-80">
                         <i class="fa-solid fa-magnifying-glass absolute right-3 top-3 text-gray-400"></i>
                         <input type="text" id="mgr-search-input" onkeyup="loadCasesForManagerTable()" placeholder="ابحث برقم القضية أو اسم المدعي..." class="w-full pr-10 pl-4 py-2 border rounded-lg text-sm focus:outline-none focus:border-[#d4af37]">
@@ -142,7 +142,7 @@
                                 <th class="p-3">الأطراف</th>
                                 <th class="p-3 w-40">تاريخ الجلسة</th>
                                 <th class="p-3">المطلوب</th>
-                                <th class="p-3 w-24">الإجراء</th>
+                                <th class="p-3 w-32">الإجراءات</th>
                             </tr>
                         </thead>
                         <tbody id="manage-cases-table-body"></tbody>
@@ -162,19 +162,48 @@
             <div class="bg-white p-6 rounded-xl shadow-sm border flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
                     <h2 class="text-xl font-bold text-slate-800"><i class="fa-solid fa-gavel text-[#d4af37] ml-2"></i> لوحة تحكم المحامي (علي آل شريه)</h2>
-                    <p class="text-sm text-gray-500 mt-1">متابعة الجلسات القادمة وأقرب جلسة لأي قضية</p>
+                    <p class="text-sm text-gray-500 mt-1">متابعة الجلسات القادمة وأقرب جلسة والتقويم الأسبوعي</p>
                 </div>
             </div>
 
+            <!-- أقرب جلسة -->
             <div id="nearest-hearing-box" class="bg-[#fdfaf3] border-2 border-[#d4af37] p-6 rounded-xl shadow-sm relative overflow-hidden">
                 <div class="absolute top-0 right-0 w-2 h-full bg-[#d4af37]"></div>
-                <h3 class="text-lg font-bold text-slate-800 mb-3"><i class="fa-solid fa-bell text-red-500 ml-1 ml-2 animate-pulse"></i> أقرب جلسة قادمة</h3>
+                <h3 class="text-lg font-bold text-slate-800 mb-3"><i class="fa-solid fa-bell text-red-500 ml-2 animate-pulse"></i> أقرب جلسة قادمة</h3>
                 <div id="nearest-hearing-content" class="text-slate-700 text-sm leading-relaxed">جاري التحميل...</div>
             </div>
 
+            <!-- التقويم الأسبوعي للجلسات -->
+            <div class="bg-white p-6 rounded-xl shadow-sm border">
+                <div class="flex flex-col md:flex-row justify-between items-center mb-4 gap-4 border-b pb-4">
+                    <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                        <i class="fa-solid fa-calendar-week text-[#d4af37]"></i>
+                        <span>التقويم الأسبوعي للجلسات النشطة</span>
+                    </h3>
+                    <div class="flex items-center gap-2">
+                        <button onclick="changeWeek(-1)" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg text-xs font-bold border transition">
+                            <i class="fa-solid fa-chevron-right ml-1"></i> الأسبوع السابق
+                        </button>
+                        <button onclick="resetToCurrentWeek()" class="bg-[#d4af37] hover:bg-amber-600 text-slate-900 px-3 py-1.5 rounded-lg text-xs font-bold transition shadow">
+                            اليوم
+                        </button>
+                        <button onclick="changeWeek(1)" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg text-xs font-bold border transition">
+                            الأسبوع التالي <i class="fa-solid fa-chevron-left mr-1"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="text-center font-bold text-slate-700 mb-4 text-sm" id="week-range-label"></div>
+
+                <!-- شبكة أسبوعية 7 أعمدة -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-7 gap-3" id="weekly-calendar-grid">
+                    <!-- يتم بناؤها بواسطة JS -->
+                </div>
+            </div>
+
+            <!-- جدول استعراض وتفتيش الجلسات -->
             <div class="bg-white p-6 rounded-xl shadow-sm border">
                 <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
-                    <h3 class="text-lg font-bold text-slate-700">استعراض الجلسات ومتابعتها</h3>
+                    <h3 class="text-lg font-bold text-slate-700">جدول جميع الجلسات ومتابعتها</h3>
                     <div class="relative w-full md:w-96">
                         <i class="fa-solid fa-magnifying-glass absolute right-3 top-3 text-gray-400"></i>
                         <input type="text" id="lawyer-search-input" onkeyup="loadCasesForLawyer()" placeholder="ابحث برقم القضية أو اسم المدعي..." class="w-full pr-10 pl-4 py-2 border-2 border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#d4af37]">
@@ -209,7 +238,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, collection, getDocs, addDoc, updateDoc, doc, writeBatch } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, addDoc, updateDoc, deleteDoc, doc, writeBatch } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBAd5j5MJwSm4COC3LszAOwnXimSGF9ilM",
@@ -233,6 +262,7 @@
         window.getDocs = getDocs;
         window.addDoc = addDoc;
         window.updateDoc = updateDoc;
+        window.deleteDoc = deleteDoc;
         window.doc = doc;
         window.writeBatch = writeBatch;
 
@@ -262,6 +292,87 @@
 
     <!-- App Logic Scripts -->
     <script>
+        let cachedLawyerCases = [];
+        let currentWeekStart = getSunday(new Date());
+
+        function getSunday(d) {
+            const date = new Date(d);
+            const day = date.getDay();
+            const diff = date.getDate() - day;
+            return new Date(date.setDate(diff));
+        }
+
+        function formatDateToYYYYMMDD(d) {
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        function changeWeek(direction) {
+            currentWeekStart.setDate(currentWeekStart.getDate() + (direction * 7));
+            renderWeeklyCalendar();
+        }
+
+        function resetToCurrentWeek() {
+            currentWeekStart = getSunday(new Date());
+            renderWeeklyCalendar();
+        }
+
+        function renderWeeklyCalendar() {
+            const grid = document.getElementById('weekly-calendar-grid');
+            const rangeLabel = document.getElementById('week-range-label');
+            if (!grid) return;
+
+            const dayNames = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+            const todayStr = formatDateToYYYYMMDD(new Date());
+
+            const weekEnd = new Date(currentWeekStart);
+            weekEnd.setDate(weekEnd.getDate() + 6);
+
+            rangeLabel.innerText = `الأسبوع من ${formatDateToYYYYMMDD(currentWeekStart)} إلى ${formatDateToYYYYMMDD(weekEnd)}`;
+
+            grid.innerHTML = '';
+
+            for (let i = 0; i < 7; i++) {
+                const currentDayDate = new Date(currentWeekStart);
+                currentDayDate.setDate(currentDayDate.getDate() + i);
+                const dateStr = formatDateToYYYYMMDD(currentDayDate);
+                const isToday = (dateStr === todayStr);
+
+                const dayCases = cachedLawyerCases.filter(c => c.hearingDate === dateStr);
+
+                let casesHTML = '';
+                if (dayCases.length > 0) {
+                    dayCases.forEach(c => {
+                        casesHTML += `
+                            <div class="bg-amber-50 border border-amber-300 rounded-lg p-2 text-xs mb-2 shadow-sm hover:shadow transition">
+                                <div class="font-bold text-slate-900 border-b border-amber-200 pb-1 mb-1 flex items-center justify-between">
+                                    <span><i class="fa-solid fa-gavel text-[#d4af37] ml-1"></i>${c.caseNumber}</span>
+                                </div>
+                                <div class="text-gray-700 font-medium truncate mb-1" title="${c.plaintiff}">${c.plaintiff || ''}</div>
+                                ${c.required ? `<div class="text-blue-800 bg-blue-50 p-1 rounded border border-blue-100 font-semibold text-[11px]">المطلوب: ${c.required}</div>` : ''}
+                            </div>
+                        `;
+                    });
+                } else {
+                    casesHTML = `<div class="text-xs text-gray-400 text-center py-6 font-medium">لا توجد جلسات</div>`;
+                }
+
+                grid.innerHTML += `
+                    <div class="border ${isToday ? 'border-[#d4af37] bg-amber-50/40 shadow-md ring-2 ring-[#d4af37]/30' : 'border-gray-200 bg-gray-50'} rounded-xl p-3 flex flex-col justify-between min-h-[180px]">
+                        <div>
+                            <div class="flex justify-between items-center mb-3 pb-2 border-b ${isToday ? 'border-[#d4af37]' : 'border-gray-200'}">
+                                <span class="font-bold text-sm ${isToday ? 'text-amber-900' : 'text-slate-800'}">${dayNames[i]}</span>
+                                <span class="text-xs font-bold px-2 py-0.5 rounded-full ${isToday ? 'bg-[#d4af37] text-slate-900 shadow-sm' : 'bg-gray-200 text-gray-700'}">${currentDayDate.getDate()} / ${currentDayDate.getMonth() + 1}</span>
+                            </div>
+                            <div>${casesHTML}</div>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
         async function handleLogin(e) {
             e.preventDefault();
             const usernameInput = document.getElementById('login-username').value.trim().toLowerCase();
@@ -301,25 +412,36 @@
 
         async function saveNewCase(e) {
             e.preventDefault();
-            const newCase = {
-                caseNumber: document.getElementById('new-case-num').value,
-                classification: document.getElementById('new-classification').value,
-                plaintiff: document.getElementById('new-plaintiff').value,
-                defendant: document.getElementById('new-defendant').value,
-                hearingDate: document.getElementById('new-hearing-date').value,
-                required: document.getElementById('new-required').value,
-                notes: document.getElementById('new-notes').value,
-                summary: document.getElementById('new-summary').value
-            };
+            const caseNumber = document.getElementById('new-case-num').value.trim();
+            if (!caseNumber) return;
 
             try {
+                // التحقق من عدم تكرار القضية
+                const existingSnap = await window.getDocs(window.collection(window.db, "cases"));
+                const exists = existingSnap.docs.some(d => String(d.data().caseNumber || '').trim() === caseNumber);
+
+                if (exists) {
+                    alert(`القضية رقم (${caseNumber}) مسجلة بالفعل في النظام! لا يمكن تكرار القضايا.`);
+                    return;
+                }
+
+                const newCase = {
+                    caseNumber: caseNumber,
+                    classification: document.getElementById('new-classification').value,
+                    plaintiff: document.getElementById('new-plaintiff').value,
+                    defendant: document.getElementById('new-defendant').value,
+                    hearingDate: document.getElementById('new-hearing-date').value,
+                    required: document.getElementById('new-required').value,
+                    notes: document.getElementById('new-notes').value,
+                    summary: document.getElementById('new-summary').value
+                };
+
                 await window.addDoc(window.collection(window.db, "cases"), newCase);
                 alert('تم إضافة القضية بنجاح!');
                 e.target.reset();
             } catch (err) { alert('حدث خطأ: ' + err.message); }
         }
 
-        // دالة قراءة ورفع الإكسل الفائقة السرعة مع عداد التقدم
         async function processExcelUpload() {
             const fileInput = document.getElementById('excel-file-input');
             const statusDiv = document.getElementById('excel-status');
@@ -329,7 +451,7 @@
                 return; 
             }
             
-            statusDiv.innerHTML = '<p class="text-blue-600 font-bold"><i class="fa-solid fa-spinner fa-spin ml-2"></i>جاري قراءة وتجهيز بيانات الإكسل...</p>';
+            statusDiv.innerHTML = '<p class="text-blue-600 font-bold"><i class="fa-solid fa-spinner fa-spin ml-2"></i>جاري قراءة وتجهيز بيانات الإكسل والتحقق من التكرار...</p>';
 
             const reader = new FileReader();
             reader.onload = async function(e) {
@@ -344,7 +466,18 @@
                         return;
                     }
 
+                    // جلب أرقام القضايا المسجلة حالياً
+                    const existingSnap = await window.getDocs(window.collection(window.db, "cases"));
+                    const existingNumbers = new Set(
+                        existingSnap.docs
+                            .map(d => String(d.data().caseNumber || '').trim())
+                            .filter(Boolean)
+                    );
+
                     const casesToUpload = [];
+                    let duplicateCount = 0;
+                    const seenInExcel = new Set();
+
                     for (let rawRow of json) {
                         const row = {};
                         for (let k in rawRow) {
@@ -358,6 +491,16 @@
                         }
 
                         if (!caseNum) continue;
+
+                        const caseNumStr = String(caseNum).trim();
+
+                        // فحص إذا كانت القضية مكررة في قاعدة البيانات أو داخل نفس ملف الإكسل
+                        if (existingNumbers.has(caseNumStr) || seenInExcel.has(caseNumStr)) {
+                            duplicateCount++;
+                            continue;
+                        }
+
+                        seenInExcel.add(caseNumStr);
 
                         const getVal = (keywords) => {
                             for (let kw of keywords) {
@@ -374,7 +517,7 @@
                         };
 
                         casesToUpload.push({
-                            caseNumber: String(caseNum).trim(),
+                            caseNumber: caseNumStr,
                             classification: getVal(['تصنيف']),
                             plaintiff: getVal(['المدعي', 'مدعي']),
                             defendant: getVal(['المدعي عليه', 'عليه', 'خصم']),
@@ -386,12 +529,16 @@
                     }
 
                     if (casesToUpload.length === 0) {
-                        alert('لم يتم التعرف على أي قضايا بالملف. تأكد أن عمود رقم القضية يحتوي على كلمة "رقم".');
-                        statusDiv.innerHTML = '';
+                        if (duplicateCount > 0) {
+                            alert(`جميع القضايا الموجودة في ملف الإكسل (${duplicateCount} قضية) مسجلة بالكامل مسبقاً!`);
+                            statusDiv.innerHTML = `<p class="text-amber-600 font-bold"><i class="fa-solid fa-triangle-exclamation ml-2"></i>تم تجاهل جميع القضايا لأنها مسجلة مسبقاً (${duplicateCount} قضية مكررة).</p>`;
+                        } else {
+                            alert('لم يتم التعرف على أي قضايا بالملف. تأكد أن عمود رقم القضية يحتوي على كلمة "رقم".');
+                            statusDiv.innerHTML = '';
+                        }
                         return;
                     }
 
-                    // رفع البيانات على دفعات باستخدام WriteBatch
                     const total = casesToUpload.length;
                     let batch = window.writeBatch(window.db);
                     let batchCount = 0;
@@ -402,15 +549,19 @@
                         batchCount++;
 
                         if (batchCount === 400 || i === total - 1) {
-                            statusDiv.innerHTML = `<p class="text-blue-600 font-bold"><i class="fa-solid fa-spinner fa-spin ml-2"></i>جاري رفع ${i + 1} من أصل ${total} قضية إلى قاعدة البيانات...</p>`;
+                            statusDiv.innerHTML = `<p class="text-blue-600 font-bold"><i class="fa-solid fa-spinner fa-spin ml-2"></i>جاري رفع ${i + 1} من أصل ${total} قضية جديدة...</p>`;
                             await batch.commit();
                             batch = window.writeBatch(window.db);
                             batchCount = 0;
                         }
                     }
 
-                    statusDiv.innerHTML = '<p class="text-emerald-600 font-bold"><i class="fa-solid fa-circle-check ml-2"></i>تم الرفع بنجاح!</p>';
-                    alert(`تم رفع ${total} قضية بنجاح إلى النظام!`);
+                    let resultMsg = `تم رفع ${total} قضية جديدة بنجاح!`;
+                    if (duplicateCount > 0) {
+                        resultMsg += `\nوتم استبعاد ${duplicateCount} قضية مكررة لأنها موجودة مسبقاً.`;
+                    }
+                    statusDiv.innerHTML = `<p class="text-emerald-600 font-bold"><i class="fa-solid fa-circle-check ml-2"></i>تم الرفع بنجاح! (تم إضافة ${total} قضية جديدة${duplicateCount > 0 ? ` وتجاهل ${duplicateCount} مكررة` : ''})</p>`;
+                    alert(resultMsg);
                     fileInput.value = '';
                 } catch (err) {
                     console.error(err);
@@ -448,7 +599,10 @@
                         <td class="p-3">${data.plaintiff || ''} <br><span class="text-xs text-gray-500">ضد: ${data.defendant || ''}</span></td>
                         <td class="p-3"><input type="date" id="date-${id}" value="${data.hearingDate || ''}" class="border p-1 rounded text-xs w-full"></td>
                         <td class="p-3"><input type="text" id="req-${id}" value="${data.required || ''}" class="border p-1 rounded text-xs w-full"></td>
-                        <td class="p-3"><button onclick="updateCase('${id}')" class="bg-blue-600 text-white px-3 py-1 rounded text-xs hover:bg-blue-700 w-full">تحديث</button></td>
+                        <td class="p-3 flex items-center gap-1">
+                            <button onclick="updateCase('${id}')" class="bg-blue-600 text-white px-2.5 py-1.5 rounded text-xs hover:bg-blue-700 font-bold">تحديث</button>
+                            <button onclick="deleteCase('${id}', '${data.caseNumber || ''}')" title="حذف القضية" class="bg-red-600 text-white px-2.5 py-1.5 rounded text-xs hover:bg-red-700 font-bold"><i class="fa-solid fa-trash"></i></button>
+                        </td>
                     </tr>
                 `;
             });
@@ -462,6 +616,17 @@
                 });
                 alert('تم التحديث بنجاح!');
             } catch (err) { alert('خطأ: ' + err.message); }
+        }
+
+        async function deleteCase(id, caseNum) {
+            if (!confirm(`هل أنت تأكد من حذف القضية رقم (${caseNum}) نهائياً؟`)) {
+                return;
+            }
+            try {
+                await window.deleteDoc(window.doc(window.db, "cases", id));
+                alert('تم حذف القضية بنجاح!');
+                loadCasesForManagerTable();
+            } catch (err) { alert('حدث خطأ أثناء الحذف: ' + err.message); }
         }
 
         async function loadActiveCases() {
@@ -496,6 +661,9 @@
             const querySnapshot = await window.getDocs(window.collection(window.db, "cases"));
             querySnapshot.forEach(d => cases.push(d.data()));
             
+            cachedLawyerCases = cases;
+            renderWeeklyCalendar();
+
             const today = new Date().toISOString().split('T')[0];
             let upcoming = cases.filter(c => c.hearingDate && c.hearingDate >= today).sort((a, b) => new Date(a.hearingDate) - new Date(b.hearingDate));
 
