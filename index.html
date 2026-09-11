@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مكتب محاماة علي آل شريه</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- SheetJS for Excel Reading -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .login-bg {
+            background-color: #f8fafc;
+            background-image: radial-gradient(#e2e8f0 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+        .mgr-tab-content { display: none; }
+        .mgr-tab-content.active { display: block; }
+    </style>
+</head>
+<body class="bg-gray-50 font-sans text-gray-900 min-h-screen flex flex-col justify-between">
+
+    <!-- Header -->
+    <header class="bg-slate-900 text-white shadow-lg border-b-4 border-[#d4af37]">
+        <div class="max-w-7xl mx-auto px-6 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-3">
+                <i class="fa-solid fa-scale-balanced text-[#d4af37] text-2xl"></i>
+                <div>
+                    <h1 class="text-2xl font-bold tracking-wide">مكتب محاماة علي آل شريه</h1>
+                    <p class="text-xs text-slate-300 mt-1">إعداد وتصميم الموقع : طارق حسين عبد العال</p>
+                </div>
+            </div>
+            <div id="user-info" class="hidden flex items-center gap-4">
+                <span id="user-role-badge" class="bg-[#d4af37] text-slate-900 font-bold text-xs px-4 py-1.5 rounded-full shadow"></span>
+                <button onclick="logout()" class="hover:text-red-400 text-sm transition font-medium">
+                    تسجيل خروج <i class="fa-solid fa-right-from-bracket ml-1"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="flex-grow w-full max-w-7xl mx-auto px-4 py-8">
+        
+        <!-- Login View -->
+        <div id="login-view" class="login-bg min-h-[70vh] flex items-center justify-center rounded-2xl">
+            <div class="bg-white p-10 rounded-2xl shadow-2xl border border-gray-100 max-w-md w-full relative overflow-hidden">
+                <div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-slate-900 via-[#d4af37] to-slate-900"></div>
+                
+                <div class="text-center mb-8 mt-2">
+                    <div class="bg-slate-50 border-2 border-slate-100 text-slate-900 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl shadow-inner">
+                        <i class="fa-solid fa-gavel text-[#d4af37]"></i>
+                    </div>
+                    <h2 class="text-3xl font-extrabold text-slate-900">بوابة الدخول</h2>
+                    <p class="text-sm text-gray-500 mt-2 font-medium">النظام الإلكتروني لإدارة القضايا والجلسات</p>
+                </div>
+                
+                <form id="login-form" onsubmit="handleLogin(event)" autocomplete="off" spellcheck="false" class="space-y-5">
+                    <input type="text" name="fakeusernameremembered" style="display:none">
+                    <input type="password" name="fakepasswordremembered" style="display:none">
+                    
+                    <div>
+                        <label class="block text-sm font-bold text-slate-700 mb-2">اسم المستخدم</label>
+                        <div class="relative">
+                            <i class="fa-solid fa-user absolute right-3 top-3 text-gray-400"></i>
+                            <input type="text" id="login-username" required autocomplete="new-password" placeholder="الاسم" class="w-full pr-10 pl-4 py-2.5 border-2 border-gray-200 rounded-xl focus:border-[#d4af37] focus:ring-0 outline-none text-left font-semibold transition" dir="ltr">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold text-slate-700 mb-2">كلمة المرور</label>
+                        <div class="relative">
+                            <i class="fa-solid fa-lock absolute right-3 top-3 text-gray-400"></i>
+                            <input type="password" id="login-password" required autocomplete="new-password" placeholder="••••••" class="w-full pr-10 pl-4 py-2.5 border-2 border-gray-200 rounded-xl focus:border-[#d4af37] focus:ring-0 outline-none text-left tracking-widest transition" dir="ltr">
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="w-full bg-slate-900 hover:bg-slate-800 text-white text-lg py-3 rounded-xl font-bold transition shadow-lg mt-4 flex justify-center items-center gap-2">
+                        <span>تسجيل الدخول</span>
+                        <i class="fa-solid fa-arrow-left-long text-[#d4af37]"></i>
+                    </button>
+                    <div id="login-error" class="text-red-500 text-sm text-center hidden font-bold mt-2 bg-red-50 p-2 rounded-lg"></div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Manager Dashboard (tarek) -->
+        <div id="manager-dashboard" class="hidden space-y-6">
+            <div class="flex flex-wrap justify-between items-center bg-white p-4 rounded-xl shadow-sm border gap-4">
+                <h2 class="text-xl font-bold text-slate-800"><i class="fa-solid fa-user-tie text-[#d4af37] ml-2"></i> لوحة تحكم المدير (مساعد المحامي)</h2>
+                <div class="flex gap-2 flex-wrap">
+                    <button onclick="switchManagerTab('add-single')" class="bg-slate-900 text-white px-4 py-2 rounded-lg text-sm hover:bg-slate-800"><i class="fa-solid fa-plus ml-1"></i> إدخال قضية</button>
+                    <button onclick="switchManagerTab('excel-import')" class="bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-emerald-700"><i class="fa-solid fa-file-excel ml-1"></i> رفع إكسل</button>
+                    <button onclick="switchManagerTab('manage-cases')" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700"><i class="fa-solid fa-pen-to-square ml-1"></i> تعديل ومواعيد</button>
+                    <button onclick="switchManagerTab('active-cases')" class="bg-purple-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-purple-700"><i class="fa-solid fa-calendar-days ml-1"></i> القضايا النشطة</button>
+                </div>
+            </div>
+
+            <!-- Add Single Case -->
+            <div id="mgr-add-single" class="mgr-tab-content active bg-white p-6 rounded-xl shadow-sm border">
+                <h3 class="text-lg font-bold mb-4 text-slate-700">إدخال قضية جديدة</h3>
+                <form onsubmit="saveNewCase(event)" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div><label class="block text-sm font-medium mb-1">رقم القضية</label><input type="text" id="new-case-num" required class="w-full border p-2 rounded focus:ring-1 focus:ring-[#d4af37]"></div>
+                    <div><label class="block text-sm font-medium mb-1">تصنيفها</label><input type="text" id="new-classification" class="w-full border p-2 rounded focus:ring-1 focus:ring-[#d4af37]"></div>
+                    <div><label class="block text-sm font-medium mb-1">المدعي</label><input type="text" id="new-plaintiff" class="w-full border p-2 rounded focus:ring-1 focus:ring-[#d4af37]"></div>
+                    <div><label class="block text-sm font-medium mb-1">المدعي عليه</label><input type="text" id="new-defendant" class="w-full border p-2 rounded focus:ring-1 focus:ring-[#d4af37]"></div>
+                    <div><label class="block text-sm font-medium mb-1">تاريخ الجلسة</label><input type="date" id="new-hearing-date" class="w-full border p-2 rounded focus:ring-1 focus:ring-[#d4af37]"></div>
+                    <div><label class="block text-sm font-medium mb-1">المطلوب وفقاً لأخر تحديث</label><input type="text" id="new-required" class="w-full border p-2 rounded focus:ring-1 focus:ring-[#d4af37]"></div>
+                    <div class="md:col-span-2"><label class="block text-sm font-medium mb-1">ملاحظات على القضية</label><textarea id="new-notes" class="w-full border p-2 rounded focus:ring-1 focus:ring-[#d4af37]" rows="2"></textarea></div>
+                    <div class="md:col-span-2"><label class="block text-sm font-medium mb-1">ملخص القضية</label><textarea id="new-summary" class="w-full border p-2 rounded focus:ring-1 focus:ring-[#d4af37]" rows="2"></textarea></div>
+                    <div class="md:col-span-2"><button type="submit" class="bg-slate-900 text-white px-6 py-2 rounded hover:bg-[#d4af37] hover:text-slate-900 font-bold transition w-full md:w-auto">حفظ القضية</button></div>
+                </form>
+            </div>
+
+            <!-- Excel Import -->
+            <div id="mgr-excel-import" class="mgr-tab-content bg-white p-6 rounded-xl shadow-sm border">
+                <h3 class="text-lg font-bold mb-2 text-slate-700">إضافة الجلسات دفعة واحدة من ملف إكسل</h3>
+                <p class="text-xs text-gray-500 mb-4">تأكد من أن ملف الإكسل يحتوي على أعمدة باسم (رقم القضية، المدعي، المدعي عليه، تاريخ الجلسة...)</p>
+                <input type="file" id="excel-file-input" accept=".xlsx, .xls" class="block w-full border p-3 rounded-lg mb-4 bg-gray-50">
+                <button onclick="processExcelUpload()" class="bg-emerald-600 text-white px-6 py-2.5 rounded-lg font-bold hover:bg-emerald-700 transition flex items-center gap-2">
+                    <i class="fa-solid fa-cloud-arrow-up"></i>
+                    <span>رفع ومعالجة البيانات</span>
+                </button>
+                <div id="excel-status" class="mt-4"></div>
+            </div>
+
+            <!-- Manage Cases -->
+            <div id="mgr-manage-cases" class="mgr-tab-content bg-white p-6 rounded-xl shadow-sm border">
+                <div class="flex flex-col md:flex-row justify-between items-center mb-4 gap-4">
+                    <h3 class="text-lg font-bold text-slate-700">تعديل القضايا وتحديد موعد جلساتها</h3>
+                    <!-- شريط البحث للمدير -->
+                    <div class="relative w-full md:w-80">
+                        <i class="fa-solid fa-magnifying-glass absolute right-3 top-3 text-gray-400"></i>
+                        <input type="text" id="mgr-search-input" onkeyup="loadCasesForManagerTable()" placeholder="ابحث برقم القضية أو اسم المدعي..." class="w-full pr-10 pl-4 py-2 border rounded-lg text-sm focus:outline-none focus:border-[#d4af37]">
+                    </div>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-right border-collapse">
+                        <thead>
+                            <tr class="bg-slate-100 border-b text-sm">
+                                <th class="p-3">رقم القضية</th>
+                                <th class="p-3">الأطراف</th>
+                                <th class="p-3 w-40">تاريخ الجلسة</th>
+                                <th class="p-3">المطلوب</th>
+                                <th class="p-3 w-24">الإجراء</th>
+                            </tr>
+                        </thead>
+                        <tbody id="manage-cases-table-body"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Active Cases -->
+            <div id="mgr-active-cases" class="mgr-tab-content bg-white p-6 rounded-xl shadow-sm border">
+                <h3 class="text-lg font-bold mb-4 text-slate-700">القضايا النشطة (مرتبة حسب مواعيد الجلسات)</h3>
+                <div id="active-cases-list" class="space-y-3"></div>
+            </div>
+        </div>
+
+        <!-- Lawyer Dashboard (ali) -->
+        <div id="lawyer-dashboard" class="hidden space-y-6">
+            <div class="bg-white p-6 rounded-xl shadow-sm border flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                    <h2 class="text-xl font-bold text-slate-800"><i class="fa-solid fa-gavel text-[#d4af37] ml-2"></i> لوحة تحكم المحامي (علي آل شريه)</h2>
+                    <p class="text-sm text-gray-500 mt-1">متابعة الجلسات القادمة وأقرب جلسة لأي قضية</p>
+                </div>
+            </div>
+
+            <div id="nearest-hearing-box" class="bg-[#fdfaf3] border-2 border-[#d4af37] p-6 rounded-xl shadow-sm relative overflow-hidden">
+                <div class="absolute top-0 right-0 w-2 h-full bg-[#d4af37]"></div>
+                <h3 class="text-lg font-bold text-slate-800 mb-3"><i class="fa-solid fa-bell text-red-500 ml-1 ml-2 animate-pulse"></i> أقرب جلسة قادمة</h3>
+                <div id="nearest-hearing-content" class="text-slate-700 text-sm leading-relaxed">جاري التحميل...</div>
+            </div>
+
+            <div class="bg-white p-6 rounded-xl shadow-sm border">
+                <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+                    <h3 class="text-lg font-bold text-slate-700">استعراض الجلسات ومتابعتها</h3>
+                    <!-- شريط البحث للمحامي -->
+                    <div class="relative w-full md:w-96">
+                        <i class="fa-solid fa-magnifying-glass absolute right-3 top-3 text-gray-400"></i>
+                        <input type="text" id="lawyer-search-input" onkeyup="loadCasesForLawyer()" placeholder="ابحث برقم القضية أو اسم المدعي..." class="w-full pr-10 pl-4 py-2 border-2 border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#d4af37]">
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-right border-collapse">
+                        <thead>
+                            <tr class="bg-slate-100 border-b text-sm">
+                                <th class="p-3">رقم القضية</th>
+                                <th class="p-3">المدعي / المدعي عليه</th>
+                                <th class="p-3">تاريخ الجلسة</th>
+                                <th class="p-3">المطلوب</th>
+                                <th class="p-3">ملاحظات</th>
+                            </tr>
+                        </thead>
+                        <tbody id="lawyer-cases-table-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-slate-900 text-slate-400 py-6 text-center border-t-2 border-[#d4af37]">
+        <p class="font-medium text-sm">جميع الحقوق محفوظة © مكتب محاماة علي آل شريه 2026</p>
+        <p class="mt-2 text-xs text-[#d4af37] font-bold">إعداد وتصميم الموقع : طارق حسين عبد العال</p>
+    </footer>
+
+    <!-- Firebase Configuration & Init -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getFirestore, collection, getDocs, addDoc, updateDoc, doc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBAd5j5MJwSm4COC3LszAOwnXimSGF9ilM",
+            authDomain: "tarekoffice-f605e.firebaseapp.com",
+            projectId: "tarekoffice-f605e",
+            storageBucket: "tarekoffice-f605e.firebasestorage.app",
+            messagingSenderId: "637656718958",
+            appId: "1:637656718958:web:16596f34c614ab14ee107f",
+            measurementId: "G-J7R76D8C8W"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        window.auth = auth;
+        window.db = db;
+        window.signInWithEmailAndPassword = signInWithEmailAndPassword;
+        window.signOut = signOut;
+        window.collection = collection;
+        window.getDocs = getDocs;
+        window.addDoc = addDoc;
+        window.updateDoc = updateDoc;
+        window.doc = doc;
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                document.getElementById('login-view').classList.add('hidden');
+                document.getElementById('user-info').classList.remove('hidden');
+                
+                if (user.email.startsWith('tarek')) {
+                    document.getElementById('user-role-badge').innerText = 'المدير (طارق)';
+                    document.getElementById('manager-dashboard').classList.remove('hidden');
+                    document.getElementById('lawyer-dashboard').classList.add('hidden');
+                } else {
+                    document.getElementById('user-role-badge').innerText = 'المحامي المتابع (علي)';
+                    document.getElementById('lawyer-dashboard').classList.remove('hidden');
+                    document.getElementById('manager-dashboard').classList.add('hidden');
+                    loadCasesForLawyer();
+                }
+            } else {
+                document.getElementById('login-view').classList.remove('hidden');
+                document.getElementById('user-info').classList.add('hidden');
+                document.getElementById('manager-dashboard').classList.add('hidden');
+                document.getElementById('lawyer-dashboard').classList.add('hidden');
+            }
+        });
+    </script>
+
+    <!-- App Logic Scripts -->
+    <script>
+        async function handleLogin(e) {
+            e.preventDefault();
+            const usernameInput = document.getElementById('login-username').value.trim().toLowerCase();
+            const password = document.getElementById('login-password').value;
+            const errorDiv = document.getElementById('login-error');
+            errorDiv.classList.add('hidden');
+
+            let email = "";
+            if (usernameInput === 'tarek') email = 'tarek@office.com';
+            else if (usernameInput === 'ali') email = 'ali@office.com';
+            else {
+                errorDiv.innerText = 'اسم المستخدم غير صحيح.';
+                errorDiv.classList.remove('hidden');
+                return;
+            }
+
+            try {
+                await window.signInWithEmailAndPassword(window.auth, email, password);
+                document.getElementById('login-form').reset(); 
+            } catch (error) {
+                errorDiv.innerText = 'كلمة المرور أو بيانات الدخول غير صحيحة.';
+                errorDiv.classList.remove('hidden');
+            }
+        }
+
+        async function logout() {
+            await window.signOut(window.auth);
+        }
+
+        function switchManagerTab(tabId) {
+            document.querySelectorAll('.mgr-tab-content').forEach(el => el.classList.remove('active'));
+            document.getElementById(`mgr-${tabId}`).classList.add('active');
+            
+            if (tabId === 'manage-cases') loadCasesForManagerTable();
+            if (tabId === 'active-cases') loadActiveCases();
+        }
+
+        async function saveNewCase(e) {
+            e.preventDefault();
+            const newCase = {
+                caseNumber: document.getElementById('new-case-num').value,
+                classification: document.getElementById('new-classification').value,
+                plaintiff: document.getElementById('new-plaintiff').value,
+                defendant: document.getElementById('new-defendant').value,
+                hearingDate: document.getElementById('new-hearing-date').value,
+                required: document.getElementById('new-required').value,
+                notes: document.getElementById('new-notes').value,
+                summary: document.getElementById('new-summary').value
+            };
+
+            try {
+                await window.addDoc(window.collection(window.db, "cases"), newCase);
+                alert('تم إضافة القضية بنجاح!');
+                e.target.reset();
+            } catch (err) { alert('حدث خطأ: ' + err.message); }
+        }
+
+        // دالة قراءة الإكسل المحدثة والذكية
+        async function processExcelUpload() {
+            const fileInput = document.getElementById('excel-file-input');
+            const statusDiv = document.getElementById('excel-status');
+
+            if (!fileInput.files.length) { 
+                alert('اختر ملف إكسل أولاً.'); 
+                return; 
+            }
+            
+            statusDiv.innerHTML = '<p class="text-blue-600 font-bold"><i class="fa-solid fa-[#d4af37] fa-spinner fa-spin ml-2"></i>جاري قراءة البيانات ورفعها إلى القاعدة...</p>';
+
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, {type: 'array'});
+                    const json = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { defval: "" });
+
+                    if (!json || json.length === 0) {
+                        alert('الملف فارغ أو لا يحتوي على بيانات مقروءة.');
+                        statusDiv.innerHTML = '';
+                        return;
+                    }
+
+                    let count = 0;
+                    for (let rawRow of json) {
+                        // تنظيف وتوحيد المفاتيح
+                        const row = {};
+                        for (let k in rawRow) {
+                            row[k.trim()] = rawRow[k];
+                        }
+
+                        // البحث عن رقم القضية بأي صيغة
+                        let caseNum = row['رقم القضية'] || row['رقم القضيه'] || row['رقم قضية'] || row['رقم القضيه '] || row['رقم القضية '] || '';
+                        if (!caseNum) {
+                            const numKey = Object.keys(row).find(k => k.includes('رقم'));
+                            if (numKey) caseNum = row[numKey];
+                        }
+
+                        if (!caseNum) continue;
+
+                        const getVal = (keywords) => {
+                            for (let kw of keywords) {
+                                const found = Object.keys(row).find(k => k.includes(kw));
+                                if (found && row[found]) return String(row[found]).trim();
+                            }
+                            return '';
+                        };
+
+                        const caseData = {
+                            caseNumber: String(caseNum).trim(),
+                            classification: getVal(['تصنيف']),
+                            plaintiff: getVal(['المدعي', 'مدعي']),
+                            defendant: getVal(['المدعي عليه', 'عليه', 'خصم']),
+                            hearingDate: getVal(['جلسة', 'جلسات', 'تاريخ']),
+                            required: getVal(['المطلوب', 'مطلوب']),
+                            notes: getVal(['ملاحظات']),
+                            summary: getVal(['ملخص'])
+                        };
+
+                        await window.addDoc(window.collection(window.db, "cases"), caseData);
+                        count++;
+                    }
+
+                    statusDiv.innerHTML = '';
+                    if (count > 0) {
+                        alert(`تم استيراد ${count} قضية بنجاح!`);
+                        fileInput.value = '';
+                    } else {
+                        alert('لم يتم التعرف على رقم القضية في الملف. تأكد أن العمود يحتوي على كلمة "رقم القضية".');
+                    }
+                } catch (err) {
+                    console.error(err);
+                    alert('حدث خطأ أثناء رفع البيانات: ' + err.message);
+                    statusDiv.innerHTML = '';
+                }
+            };
+            reader.readAsArrayBuffer(fileInput.files[0]);
+        }
+
+        async function loadCasesForManagerTable() {
+            const tbody = document.getElementById('manage-cases-table-body');
+            const searchVal = document.getElementById('mgr-search-input')?.value.trim().toLowerCase() || '';
+            
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center p-4">جاري التحميل...</td></tr>';
+            
+            const querySnapshot = await window.getDocs(window.collection(window.db, "cases"));
+            tbody.innerHTML = '';
+            
+            querySnapshot.forEach((docSnap) => {
+                const data = docSnap.data();
+                const id = docSnap.id;
+
+                const cNum = String(data.caseNumber || '').toLowerCase();
+                const cPlain = String(data.plaintiff || '').toLowerCase();
+                const cDef = String(data.defendant || '').toLowerCase();
+
+                // التصفية بحسب البحث
+                if (searchVal && !cNum.includes(searchVal) && !cPlain.includes(searchVal) && !cDef.includes(searchVal)) {
+                    return;
+                }
+
+                tbody.innerHTML += `
+                    <tr class="border-b text-sm hover:bg-gray-50">
+                        <td class="p-3 font-semibold">${data.caseNumber || ''}</td>
+                        <td class="p-3">${data.plaintiff || ''} <br><span class="text-xs text-gray-500">ضد: ${data.defendant || ''}</span></td>
+                        <td class="p-3"><input type="date" id="date-${id}" value="${data.hearingDate || ''}" class="border p-1 rounded text-xs w-full"></td>
+                        <td class="p-3"><input type="text" id="req-${id}" value="${data.required || ''}" class="border p-1 rounded text-xs w-full"></td>
+                        <td class="p-3"><button onclick="updateCase('${id}')" class="bg-blue-600 text-white px-3 py-1 rounded text-xs hover:bg-blue-700 w-full">تحديث</button></td>
+                    </tr>
+                `;
+            });
+        }
+
+        async function updateCase(id) {
+            try {
+                await window.updateDoc(window.doc(window.db, "cases", id), {
+                    hearingDate: document.getElementById(`date-${id}`).value,
+                    required: document.getElementById(`req-${id}`).value
+                });
+                alert('تم التحديث بنجاح!');
+            } catch (err) { alert('خطأ: ' + err.message); }
+        }
+
+        async function loadActiveCases() {
+            const container = document.getElementById('active-cases-list');
+            container.innerHTML = '<p class="text-center p-4">جاري التحميل...</p>';
+            
+            let cases = [];
+            const querySnapshot = await window.getDocs(window.collection(window.db, "cases"));
+            querySnapshot.forEach(d => cases.push(d.data()));
+            
+            cases = cases.filter(c => c.hearingDate).sort((a, b) => new Date(a.hearingDate) - new Date(b.hearingDate));
+            
+            container.innerHTML = '';
+            cases.forEach(c => {
+                container.innerHTML += `
+                    <div class="border p-4 rounded-lg bg-gray-50 flex flex-col md:flex-row justify-between gap-4">
+                        <div>
+                            <span class="font-bold text-slate-900">رقم القضية: ${c.caseNumber}</span>
+                            <p class="text-sm text-gray-600">المدعي: ${c.plaintiff} | عليه: ${c.defendant}</p>
+                        </div>
+                        <div class="bg-slate-900 text-white px-4 py-2 rounded text-sm text-center">موعد الجلسة<br><span class="font-bold text-[#d4af37]">${c.hearingDate}</span></div>
+                    </div>`;
+            });
+        }
+
+        async function loadCasesForLawyer() {
+            const tbody = document.getElementById('lawyer-cases-table-body');
+            const nearestBox = document.getElementById('nearest-hearing-content');
+            const searchVal = document.getElementById('lawyer-search-input')?.value.trim().toLowerCase() || '';
+            
+            let cases = [];
+            const querySnapshot = await window.getDocs(window.collection(window.db, "cases"));
+            querySnapshot.forEach(d => cases.push(d.data()));
+            
+            const today = new Date().toISOString().split('T')[0];
+            let upcoming = cases.filter(c => c.hearingDate && c.hearingDate >= today).sort((a, b) => new Date(a.hearingDate) - new Date(b.hearingDate));
+
+            if (upcoming.length > 0) {
+                const n = upcoming[0];
+                nearestBox.innerHTML = `
+                    <p class="mb-1"><strong>القضية:</strong> ${n.caseNumber}</p>
+                    <p class="mb-1"><strong>الأطراف:</strong> ${n.plaintiff} ضد ${n.defendant}</p>
+                    <p class="mb-1"><strong>الجلسة القادمة:</strong> <span class="text-red-600 font-bold bg-red-50 px-2 py-0.5 rounded">${n.hearingDate}</span></p>
+                    <p><strong>المطلوب:</strong> ${n.required || '-'}</p>
+                `;
+            } else {
+                nearestBox.innerHTML = 'لا توجد جلسات قادمة مسجلة.';
+            }
+
+            tbody.innerHTML = '';
+            cases.forEach(c => {
+                const cNum = String(c.caseNumber || '').toLowerCase();
+                const cPlain = String(c.plaintiff || '').toLowerCase();
+                const cDef = String(c.defendant || '').toLowerCase();
+
+                // التصفية بحسب البحث للمحامي
+                if (searchVal && !cNum.includes(searchVal) && !cPlain.includes(searchVal) && !cDef.includes(searchVal)) {
+                    return;
+                }
+
+                tbody.innerHTML += `
+                    <tr class="border-b text-sm hover:bg-gray-50">
+                        <td class="p-3 font-semibold">${c.caseNumber || ''}</td>
+                        <td class="p-3">${c.plaintiff || ''} <br><span class="text-xs text-gray-400">ضد: ${c.defendant || ''}</span></td>
+                        <td class="p-3 text-blue-600 font-bold" dir="ltr">${c.hearingDate || '---'}</td>
+                        <td class="p-3">${c.required || ''}</td>
+                        <td class="p-3 text-gray-500 text-xs">${c.notes || ''}</td>
+                    </tr>
+                `;
+            });
+        }
+    </script>
+</body>
+</html>
