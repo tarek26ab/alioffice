@@ -129,7 +129,6 @@
             <div id="mgr-manage-cases" class="mgr-tab-content bg-white p-6 rounded-xl shadow-sm border">
                 <div class="flex flex-col md:flex-row justify-between items-center mb-4 gap-4">
                     <h3 class="text-lg font-bold text-slate-700">تعديل القضايا وتحديد موعد جلساتها</h3>
-                    <!-- شريط البحث للمدير -->
                     <div class="relative w-full md:w-80">
                         <i class="fa-solid fa-magnifying-glass absolute right-3 top-3 text-gray-400"></i>
                         <input type="text" id="mgr-search-input" onkeyup="loadCasesForManagerTable()" placeholder="ابحث برقم القضية أو اسم المدعي..." class="w-full pr-10 pl-4 py-2 border rounded-lg text-sm focus:outline-none focus:border-[#d4af37]">
@@ -176,7 +175,6 @@
             <div class="bg-white p-6 rounded-xl shadow-sm border">
                 <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
                     <h3 class="text-lg font-bold text-slate-700">استعراض الجلسات ومتابعتها</h3>
-                    <!-- شريط البحث للمحامي -->
                     <div class="relative w-full md:w-96">
                         <i class="fa-solid fa-magnifying-glass absolute right-3 top-3 text-gray-400"></i>
                         <input type="text" id="lawyer-search-input" onkeyup="loadCasesForLawyer()" placeholder="ابحث برقم القضية أو اسم المدعي..." class="w-full pr-10 pl-4 py-2 border-2 border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#d4af37]">
@@ -211,7 +209,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, collection, getDocs, addDoc, updateDoc, doc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, addDoc, updateDoc, doc, writeBatch } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBAd5j5MJwSm4COC3LszAOwnXimSGF9ilM",
@@ -236,6 +234,7 @@
         window.addDoc = addDoc;
         window.updateDoc = updateDoc;
         window.doc = doc;
+        window.writeBatch = writeBatch;
 
         onAuthStateChanged(auth, (user) => {
             if (user) {
@@ -320,7 +319,7 @@
             } catch (err) { alert('حدث خطأ: ' + err.message); }
         }
 
-        // دالة قراءة الإكسل المحدثة والذكية
+        // دالة قراءة ورفع الإكسل الفائقة السرعة مع عداد التقدم
         async function processExcelUpload() {
             const fileInput = document.getElementById('excel-file-input');
             const statusDiv = document.getElementById('excel-status');
@@ -330,13 +329,13 @@
                 return; 
             }
             
-            statusDiv.innerHTML = '<p class="text-blue-600 font-bold"><i class="fa-solid fa-[#d4af37] fa-spinner fa-spin ml-2"></i>جاري قراءة البيانات ورفعها إلى القاعدة...</p>';
+            statusDiv.innerHTML = '<p class="text-blue-600 font-bold"><i class="fa-solid fa-spinner fa-spin ml-2"></i>جاري قراءة وتجهيز بيانات الإكسل...</p>';
 
             const reader = new FileReader();
             reader.onload = async function(e) {
                 try {
                     const data = new Uint8Array(e.target.result);
-                    const workbook = XLSX.read(data, {type: 'array'});
+                    const workbook = XLSX.read(data, { type: 'array', cellDates: true });
                     const json = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { defval: "" });
 
                     if (!json || json.length === 0) {
@@ -345,18 +344,16 @@
                         return;
                     }
 
-                    let count = 0;
+                    const casesToUpload = [];
                     for (let rawRow of json) {
-                        // تنظيف وتوحيد المفاتيح
                         const row = {};
                         for (let k in rawRow) {
-                            row[k.trim()] = rawRow[k];
+                            if (k) row[k.trim()] = rawRow[k];
                         }
 
-                        // البحث عن رقم القضية بأي صيغة
                         let caseNum = row['رقم القضية'] || row['رقم القضيه'] || row['رقم قضية'] || row['رقم القضيه '] || row['رقم القضية '] || '';
                         if (!caseNum) {
-                            const numKey = Object.keys(row).find(k => k.includes('رقم'));
+                            const numKey = Object.keys(row).find(k => k && k.includes('رقم'));
                             if (numKey) caseNum = row[numKey];
                         }
 
@@ -364,13 +361,19 @@
 
                         const getVal = (keywords) => {
                             for (let kw of keywords) {
-                                const found = Object.keys(row).find(k => k.includes(kw));
-                                if (found && row[found]) return String(row[found]).trim();
+                                const found = Object.keys(row).find(k => k && k.includes(kw));
+                                if (found && row[found] !== undefined && row[found] !== null) {
+                                    let val = row[found];
+                                    if (val instanceof Date) {
+                                        return val.toISOString().split('T')[0];
+                                    }
+                                    return String(val).trim();
+                                }
                             }
                             return '';
                         };
 
-                        const caseData = {
+                        casesToUpload.push({
                             caseNumber: String(caseNum).trim(),
                             classification: getVal(['تصنيف']),
                             plaintiff: getVal(['المدعي', 'مدعي']),
@@ -379,23 +382,40 @@
                             required: getVal(['المطلوب', 'مطلوب']),
                             notes: getVal(['ملاحظات']),
                             summary: getVal(['ملخص'])
-                        };
-
-                        await window.addDoc(window.collection(window.db, "cases"), caseData);
-                        count++;
+                        });
                     }
 
-                    statusDiv.innerHTML = '';
-                    if (count > 0) {
-                        alert(`تم استيراد ${count} قضية بنجاح!`);
-                        fileInput.value = '';
-                    } else {
-                        alert('لم يتم التعرف على رقم القضية في الملف. تأكد أن العمود يحتوي على كلمة "رقم القضية".');
+                    if (casesToUpload.length === 0) {
+                        alert('لم يتم التعرف على أي قضايا بالملف. تأكد أن عمود رقم القضية يحتوي على كلمة "رقم".');
+                        statusDiv.innerHTML = '';
+                        return;
                     }
+
+                    // رفع البيانات على دفعات باستخدام WriteBatch
+                    const total = casesToUpload.length;
+                    let batch = window.writeBatch(window.db);
+                    let batchCount = 0;
+
+                    for (let i = 0; i < total; i++) {
+                        const docRef = window.doc(window.collection(window.db, "cases"));
+                        batch.set(docRef, casesToUpload[i]);
+                        batchCount++;
+
+                        if (batchCount === 400 || i === total - 1) {
+                            statusDiv.innerHTML = `<p class="text-blue-600 font-bold"><i class="fa-solid fa-spinner fa-spin ml-2"></i>جاري رفع ${i + 1} من أصل ${total} قضية إلى قاعدة البيانات...</p>`;
+                            await batch.commit();
+                            batch = window.writeBatch(window.db);
+                            batchCount = 0;
+                        }
+                    }
+
+                    statusDiv.innerHTML = '<p class="text-emerald-600 font-bold"><i class="fa-solid fa-circle-check ml-2"></i>تم الرفع بنجاح!</p>';
+                    alert(`تم رفع ${total} قضية بنجاح إلى النظام!`);
+                    fileInput.value = '';
                 } catch (err) {
                     console.error(err);
                     alert('حدث خطأ أثناء رفع البيانات: ' + err.message);
-                    statusDiv.innerHTML = '';
+                    statusDiv.innerHTML = '<p class="text-red-600 font-bold">حدث خطأ أثناء الرفع.</p>';
                 }
             };
             reader.readAsArrayBuffer(fileInput.files[0]);
@@ -418,7 +438,6 @@
                 const cPlain = String(data.plaintiff || '').toLowerCase();
                 const cDef = String(data.defendant || '').toLowerCase();
 
-                // التصفية بحسب البحث
                 if (searchVal && !cNum.includes(searchVal) && !cPlain.includes(searchVal) && !cDef.includes(searchVal)) {
                     return;
                 }
@@ -498,7 +517,6 @@
                 const cPlain = String(c.plaintiff || '').toLowerCase();
                 const cDef = String(c.defendant || '').toLowerCase();
 
-                // التصفية بحسب البحث للمحامي
                 if (searchVal && !cNum.includes(searchVal) && !cPlain.includes(searchVal) && !cDef.includes(searchVal)) {
                     return;
                 }
