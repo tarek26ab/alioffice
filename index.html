@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>مكتب محاماة علي آل شريه</title>
+    <title>مكتب محاماة علي آل شرية</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- SheetJS for Excel Reading -->
@@ -28,7 +28,7 @@
             <div class="flex items-center gap-3">
                 <i class="fa-solid fa-scale-balanced text-[#d4af37] text-2xl"></i>
                 <div>
-                    <h1 class="text-2xl font-bold tracking-wide">مكتب محاماة علي آل شريه</h1>
+                    <h1 class="text-2xl font-bold tracking-wide">مكتب محاماة علي آل شرية</h1>
                     <p class="text-xs text-slate-300 mt-1">إعداد وتصميم الموقع : طارق حسين عبد العال</p>
                 </div>
             </div>
@@ -182,7 +182,7 @@
                 <div>
                     <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2">
                         <i class="fa-solid fa-gavel text-[#d4af37]"></i>
-                        <span>لوحة تحكم المحامي (علي آل شريه)</span>
+                        <span>لوحة تحكم المحامي (علي آل شرية)</span>
                     </h2>
                     <p class="text-xs text-slate-500 mt-1">متابعة دقيقة وشاملة للتقويم والجلسات وجميع القضايا المسجلة وحالاتها</p>
                 </div>
@@ -260,7 +260,7 @@
                 </div>
             </div>
 
-            <!-- Tab 2: Full Cases Registry & Status View (New Dedicated Lawyer Interface) -->
+            <!-- Tab 2: Full Cases Registry & Status View -->
             <div id="lawyer-tab-registry" class="hidden space-y-6">
                 <!-- Stat Cards Summary -->
                 <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
@@ -276,7 +276,7 @@
                             <p class="text-xs font-bold text-emerald-600">نشطة / قيد النظر</p>
                             <h4 id="stat-active-cases" class="text-2xl font-black text-emerald-700 mt-1">0</h4>
                         </div>
-                        <div class="bg-emerald-50 text-emerald-600 p-3 rounded-xl"><i class="fa-solid fa-[#00a86b] fa-scale-balanced text-xl"></i></div>
+                        <div class="bg-emerald-50 text-emerald-600 p-3 rounded-xl"><i class="fa-solid fa-scale-balanced text-xl"></i></div>
                     </div>
                     <div class="bg-white p-5 rounded-2xl border border-amber-200 shadow-sm flex items-center justify-between">
                         <div>
@@ -363,7 +363,7 @@
 
     <!-- Footer -->
     <footer class="bg-slate-900 text-slate-400 py-6 text-center border-t-2 border-[#d4af37]">
-        <p class="font-medium text-sm">جميع الحقوق محفوظة © مكتب محاماة علي آل شريه 2026</p>
+        <p class="font-medium text-sm">جميع الحقوق محفوظة © مكتب محاماة علي آل شرية 2026</p>
         <p class="mt-2 text-xs text-[#d4af37] font-bold">إعداد وتصميم الموقع : طارق حسين عبد العال</p>
     </footer>
 
@@ -399,7 +399,8 @@
         window.doc = doc;
         window.writeBatch = writeBatch;
 
-        onAuthStateChanged(auth, (user) => {
+        // التحقق التلقائي المحدث من تسجيل الدخول وجلب البيانات مباشرة
+        onAuthStateChanged(auth, async (user) => {
             if (user) {
                 document.getElementById('login-view').classList.add('hidden');
                 document.getElementById('user-info').classList.remove('hidden');
@@ -408,10 +409,14 @@
                     document.getElementById('user-role-badge').innerText = 'المدير (طارق)';
                     document.getElementById('manager-dashboard').classList.remove('hidden');
                     document.getElementById('lawyer-dashboard').classList.add('hidden');
+                    // تحميل القضايا تلقائياً للمدير في جدول التعديل والقضايا النشطة
+                    loadCasesForManagerTable();
+                    loadActiveCases();
                 } else {
                     document.getElementById('user-role-badge').innerText = 'المحامي المتابع (علي)';
                     document.getElementById('lawyer-dashboard').classList.remove('hidden');
                     document.getElementById('manager-dashboard').classList.add('hidden');
+                    // تحميل القضايا والتقويم وسجل المحامي
                     loadCasesForLawyer();
                 }
             } else {
@@ -661,6 +666,7 @@
                 playSuccessSound();
                 alert('تم حفظ القضية بنجاح!');
                 e.target.reset();
+                loadCasesForManagerTable();
             } catch (err) { alert('حدث خطأ: ' + err.message); }
         }
 
@@ -785,6 +791,7 @@
                     statusDiv.innerHTML = `<p class="text-emerald-600 font-bold"><i class="fa-solid fa-circle-check ml-2"></i>تم الرفع بنجاح! (تم إضافة ${total} قضية جديدة${duplicateCount > 0 ? ` وتجاهل ${duplicateCount} مكررة` : ''})</p>`;
                     alert(resultMsg);
                     fileInput.value = '';
+                    loadCasesForManagerTable();
                 } catch (err) {
                     console.error(err);
                     alert('حدث خطأ أثناء رفع البيانات: ' + err.message);
@@ -797,65 +804,70 @@
         async function loadCasesForManagerTable() {
             const tbody = document.getElementById('manage-cases-table-body');
             const searchVal = document.getElementById('mgr-search-input')?.value.trim().toLowerCase() || '';
+            if (!tbody) return;
             
             tbody.innerHTML = '<tr><td colspan="7" class="text-center p-6 text-slate-400"><i class="fa-solid fa-circle-notch fa-spin ml-2"></i>جاري التحميل...</td></tr>';
             
-            const querySnapshot = await window.getDocs(window.collection(window.db, "cases"));
-            tbody.innerHTML = '';
-            
-            querySnapshot.forEach((docSnap) => {
-                const data = docSnap.data();
-                const id = docSnap.id;
+            try {
+                const querySnapshot = await window.getDocs(window.collection(window.db, "cases"));
+                tbody.innerHTML = '';
+                
+                querySnapshot.forEach((docSnap) => {
+                    const data = docSnap.data();
+                    const id = docSnap.id;
 
-                const cNum = String(data.caseNumber || '').toLowerCase();
-                const cPlain = String(data.plaintiff || '').toLowerCase();
-                const cDef = String(data.defendant || '').toLowerCase();
+                    const cNum = String(data.caseNumber || '').toLowerCase();
+                    const cPlain = String(data.plaintiff || '').toLowerCase();
+                    const cDef = String(data.defendant || '').toLowerCase();
 
-                if (searchVal && !cNum.includes(searchVal) && !cPlain.includes(searchVal) && !cDef.includes(searchVal)) {
-                    return;
+                    if (searchVal && !cNum.includes(searchVal) && !cPlain.includes(searchVal) && !cDef.includes(searchVal)) {
+                        return;
+                    }
+
+                    const currentStatus = data.status || 'نشطة';
+
+                    tbody.innerHTML += `
+                        <tr class="border-b border-gray-100 text-sm hover:bg-slate-50 transition-colors">
+                            <td class="p-3.5">
+                                <span class="bg-slate-100 text-slate-800 font-bold px-2.5 py-1 rounded-lg border border-slate-200 text-xs inline-block shadow-sm">
+                                    <i class="fa-solid fa-hashtag text-[#d4af37] ml-1"></i>${data.caseNumber || ''}
+                                </span>
+                            </td>
+                            <td class="p-3.5 font-bold text-slate-900">${data.plaintiff || '-'}</td>
+                            <td class="p-3.5 font-medium text-slate-600">${data.defendant || '-'}</td>
+                            <td class="p-3.5">
+                                <input type="date" id="date-${id}" value="${data.hearingDate || ''}" class="border border-gray-300 p-1.5 rounded-lg text-xs w-full focus:ring-2 focus:ring-[#d4af37] focus:outline-none bg-white">
+                            </td>
+                            <td class="p-3.5">
+                                <select id="status-${id}" class="border border-gray-300 p-1.5 rounded-lg text-xs w-full focus:ring-2 focus:ring-[#d4af37] focus:outline-none bg-white font-bold">
+                                    <option value="نشطة" ${currentStatus === 'نشطة' ? 'selected' : ''}>نشطة</option>
+                                    <option value="قيد النظر" ${currentStatus === 'قيد النظر' ? 'selected' : ''}>قيد النظر</option>
+                                    <option value="معلقة" ${currentStatus === 'معلقة' ? 'selected' : ''}>معلقة</option>
+                                    <option value="منتهية" ${currentStatus === 'منتهية' ? 'selected' : ''}>منتهية</option>
+                                </select>
+                            </td>
+                            <td class="p-3.5">
+                                <input type="text" id="req-${id}" value="${data.required || ''}" class="border border-gray-300 p-1.5 rounded-lg text-xs w-full focus:ring-2 focus:ring-[#d4af37] focus:outline-none bg-white" placeholder="أدخل المطلوب...">
+                            </td>
+                            <td class="p-3.5 text-center">
+                                <div class="flex items-center justify-center gap-1.5">
+                                    <button onclick="playClickSound(); updateCase('${id}')" title="حفظ التعديل" class="bg-blue-600 hover:bg-blue-700 text-white px-2.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1 shadow-sm">
+                                        <i class="fa-solid fa-check"></i> <span>تحديث</span>
+                                    </button>
+                                    <button onclick="playDeleteSound(); deleteCase('${id}', '${data.caseNumber || ''}')" title="حذف القضية" class="bg-red-500 hover:bg-red-600 text-white px-2.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1 shadow-sm">
+                                        <i class="fa-solid fa-trash-can"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                });
+
+                if (tbody.children.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="7" class="text-center p-8 text-gray-400 font-bold">لا توجد قضايا مسجلة أو مطابقة للبحث</td></tr>';
                 }
-
-                const currentStatus = data.status || 'نشطة';
-
-                tbody.innerHTML += `
-                    <tr class="border-b border-gray-100 text-sm hover:bg-slate-50 transition-colors">
-                        <td class="p-3.5">
-                            <span class="bg-slate-100 text-slate-800 font-bold px-2.5 py-1 rounded-lg border border-slate-200 text-xs inline-block shadow-sm">
-                                <i class="fa-solid fa-hashtag text-[#d4af37] ml-1"></i>${data.caseNumber || ''}
-                            </span>
-                        </td>
-                        <td class="p-3.5 font-bold text-slate-900">${data.plaintiff || '-'}</td>
-                        <td class="p-3.5 font-medium text-slate-600">${data.defendant || '-'}</td>
-                        <td class="p-3.5">
-                            <input type="date" id="date-${id}" value="${data.hearingDate || ''}" class="border border-gray-300 p-1.5 rounded-lg text-xs w-full focus:ring-2 focus:ring-[#d4af37] focus:outline-none bg-white">
-                        </td>
-                        <td class="p-3.5">
-                            <select id="status-${id}" class="border border-gray-300 p-1.5 rounded-lg text-xs w-full focus:ring-2 focus:ring-[#d4af37] focus:outline-none bg-white font-bold">
-                                <option value="نشطة" ${currentStatus === 'نشطة' ? 'selected' : ''}>نشطة</option>
-                                <option value="قيد النظر" ${currentStatus === 'قيد النظر' ? 'selected' : ''}>قيد النظر</option>
-                                <option value="معلقة" ${currentStatus === 'معلقة' ? 'selected' : ''}>معلقة</option>
-                                <option value="منتهية" ${currentStatus === 'منتهية' ? 'selected' : ''}>منتهية</option>
-                            </select>
-                        </td>
-                        <td class="p-3.5">
-                            <input type="text" id="req-${id}" value="${data.required || ''}" class="border border-gray-300 p-1.5 rounded-lg text-xs w-full focus:ring-2 focus:ring-[#d4af37] focus:outline-none bg-white" placeholder="أدخل المطلوب...">
-                        </td>
-                        <td class="p-3.5 text-center">
-                            <div class="flex items-center justify-center gap-1.5">
-                                <button onclick="playClickSound(); updateCase('${id}')" title="حفظ التعديل" class="bg-blue-600 hover:bg-blue-700 text-white px-2.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1 shadow-sm">
-                                    <i class="fa-solid fa-check"></i> <span>تحديث</span>
-                                </button>
-                                <button onclick="playDeleteSound(); deleteCase('${id}', '${data.caseNumber || ''}')" title="حذف القضية" class="bg-red-500 hover:bg-red-600 text-white px-2.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1 shadow-sm">
-                                    <i class="fa-solid fa-trash-can"></i>
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                `;
-            });
-
-            if (tbody.children.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" class="text-center p-8 text-gray-400">لا توجد قضايا مطابقة للبحث</td></tr>';
+            } catch (err) {
+                tbody.innerHTML = `<tr><td colspan="7" class="text-center p-8 text-red-500 font-bold">حدث خطأ في تحميل القضايا: تحقق من قواعد Firebase Rules.</td></tr>`;
             }
         }
 
@@ -885,25 +897,35 @@
 
         async function loadActiveCases() {
             const container = document.getElementById('active-cases-list');
-            container.innerHTML = '<p class="text-center p-4">جاري التحميل...</p>';
+            if (!container) return;
+            container.innerHTML = '<p class="text-center p-4 text-slate-400"><i class="fa-solid fa-circle-notch fa-spin ml-2"></i>جاري التحميل...</p>';
             
-            let cases = [];
-            const querySnapshot = await window.getDocs(window.collection(window.db, "cases"));
-            querySnapshot.forEach(d => cases.push(d.data()));
-            
-            cases = cases.filter(c => c.hearingDate && c.status !== 'منتهية').sort((a, b) => new Date(a.hearingDate) - new Date(b.hearingDate));
-            
-            container.innerHTML = '';
-            cases.forEach(c => {
-                container.innerHTML += `
-                    <div class="border p-4 rounded-lg bg-gray-50 flex flex-col md:flex-row justify-between gap-4">
-                        <div>
-                            <span class="font-bold text-slate-900">رقم القضية: ${c.caseNumber}</span>
-                            <p class="text-sm text-gray-600">المدعي: ${c.plaintiff} | عليه: ${c.defendant}</p>
-                        </div>
-                        <div class="bg-slate-900 text-white px-4 py-2 rounded text-sm text-center">موعد الجلسة<br><span class="font-bold text-[#d4af37]">${c.hearingDate}</span></div>
-                    </div>`;
-            });
+            try {
+                let cases = [];
+                const querySnapshot = await window.getDocs(window.collection(window.db, "cases"));
+                querySnapshot.forEach(d => cases.push(d.data()));
+                
+                cases = cases.filter(c => c.hearingDate && c.status !== 'منتهية').sort((a, b) => new Date(a.hearingDate) - new Date(b.hearingDate));
+                
+                container.innerHTML = '';
+                if (cases.length === 0) {
+                    container.innerHTML = '<p class="text-center p-4 text-gray-500">لا توجد قضايا نشطة مسجلة حالياً.</p>';
+                    return;
+                }
+
+                cases.forEach(c => {
+                    container.innerHTML += `
+                        <div class="border p-4 rounded-lg bg-gray-50 flex flex-col md:flex-row justify-between gap-4 shadow-sm">
+                            <div>
+                                <span class="font-bold text-slate-900">رقم القضية: ${c.caseNumber}</span>
+                                <p class="text-sm text-gray-600 mt-1">المدعي: ${c.plaintiff || '-'} | عليه: ${c.defendant || '-'}</p>
+                            </div>
+                            <div class="bg-slate-900 text-white px-4 py-2 rounded text-sm text-center font-semibold">موعد الجلسة<br><span class="font-bold text-[#d4af37]">${c.hearingDate}</span></div>
+                        </div>`;
+                });
+            } catch (err) {
+                container.innerHTML = '<p class="text-center p-4 text-red-500">فشل في تحميل البيانات.</p>';
+            }
         }
 
         async function loadCasesForLawyer() {
@@ -911,50 +933,60 @@
             const nearestBox = document.getElementById('nearest-hearing-content');
             const searchVal = document.getElementById('lawyer-search-input')?.value.trim().toLowerCase() || '';
             
-            let cases = [];
-            const querySnapshot = await window.getDocs(window.collection(window.db, "cases"));
-            querySnapshot.forEach(d => cases.push(d.data()));
-            
-            cachedLawyerCases = cases;
-            renderWeeklyCalendar();
-            updateRegistryStats();
+            try {
+                let cases = [];
+                const querySnapshot = await window.getDocs(window.collection(window.db, "cases"));
+                querySnapshot.forEach(d => cases.push(d.data()));
+                
+                cachedLawyerCases = cases;
+                renderWeeklyCalendar();
+                updateRegistryStats();
 
-            const today = new Date().toISOString().split('T')[0];
-            let upcoming = cases.filter(c => c.hearingDate && c.hearingDate >= today && c.status !== 'منتهية').sort((a, b) => new Date(a.hearingDate) - new Date(b.hearingDate));
+                const today = new Date().toISOString().split('T')[0];
+                let upcoming = cases.filter(c => c.hearingDate && c.hearingDate >= today && c.status !== 'منتهية').sort((a, b) => new Date(a.hearingDate) - new Date(b.hearingDate));
 
-            if (upcoming.length > 0) {
-                const n = upcoming[0];
-                nearestBox.innerHTML = `
-                    <p class="mb-1"><strong>القضية:</strong> ${n.caseNumber}</p>
-                    <p class="mb-1"><strong>المدعي:</strong> ${n.plaintiff} | <strong>ضد:</strong> ${n.defendant}</p>
-                    <p class="mb-1"><strong>الجلسة القادمة:</strong> <span class="text-red-600 font-bold bg-red-50 px-2 py-0.5 rounded border border-red-200">${n.hearingDate}</span></p>
-                    <p><strong>المطلوب:</strong> ${n.required || '-'}</p>
-                `;
-            } else {
-                nearestBox.innerHTML = 'لا توجد جلسات قادمة مسجلة.';
-            }
-
-            tbody.innerHTML = '';
-            cases.forEach(c => {
-                const cNum = String(c.caseNumber || '').toLowerCase();
-                const cPlain = String(c.plaintiff || '').toLowerCase();
-                const cDef = String(c.defendant || '').toLowerCase();
-
-                if (searchVal && !cNum.includes(searchVal) && !cPlain.includes(searchVal) && !cDef.includes(searchVal)) {
-                    return;
+                if (upcoming.length > 0) {
+                    const n = upcoming[0];
+                    nearestBox.innerHTML = `
+                        <p class="mb-1"><strong>القضية:</strong> ${n.caseNumber}</p>
+                        <p class="mb-1"><strong>المدعي:</strong> ${n.plaintiff || '-'} | <strong>ضد:</strong> ${n.defendant || '-'}</p>
+                        <p class="mb-1"><strong>الجلسة القادمة:</strong> <span class="text-red-600 font-bold bg-red-50 px-2 py-0.5 rounded border border-red-200" dir="ltr">${n.hearingDate}</span></p>
+                        <p><strong>المطلوب:</strong> ${n.required || '-'}</p>
+                    `;
+                } else {
+                    nearestBox.innerHTML = 'لا توجد جلسات قادمة مسجلة.';
                 }
 
-                tbody.innerHTML += `
-                    <tr class="border-b border-gray-100 text-sm hover:bg-gray-50">
-                        <td class="p-3 font-semibold text-slate-800">${c.caseNumber || ''}</td>
-                        <td class="p-3 font-bold text-slate-900">${c.plaintiff || '-'}</td>
-                        <td class="p-3 font-medium text-slate-600">${c.defendant || '-'}</td>
-                        <td class="p-3 text-blue-600 font-bold" dir="ltr">${c.hearingDate || '---'}</td>
-                        <td class="p-3">${c.required || ''}</td>
-                        <td class="p-3 text-gray-500 text-xs">${c.notes || ''}</td>
-                    </tr>
-                `;
-            });
+                if (!tbody) return;
+                tbody.innerHTML = '';
+
+                cases.forEach(c => {
+                    const cNum = String(c.caseNumber || '').toLowerCase();
+                    const cPlain = String(c.plaintiff || '').toLowerCase();
+                    const cDef = String(c.defendant || '').toLowerCase();
+
+                    if (searchVal && !cNum.includes(searchVal) && !cPlain.includes(searchVal) && !cDef.includes(searchVal)) {
+                        return;
+                    }
+
+                    tbody.innerHTML += `
+                        <tr class="border-b border-gray-100 text-sm hover:bg-gray-50 transition">
+                            <td class="p-3 font-semibold text-slate-800">${c.caseNumber || ''}</td>
+                            <td class="p-3 font-bold text-slate-900">${c.plaintiff || '-'}</td>
+                            <td class="p-3 font-medium text-slate-600">${c.defendant || '-'}</td>
+                            <td class="p-3 text-blue-600 font-bold" dir="ltr">${c.hearingDate || '---'}</td>
+                            <td class="p-3">${c.required || ''}</td>
+                            <td class="p-3 text-gray-500 text-xs">${c.notes || ''}</td>
+                        </tr>
+                    `;
+                });
+
+                if (tbody.children.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" class="text-center p-6 text-gray-400 font-medium">لا توجد قضايا مطابقة للبحث</td></tr>';
+                }
+            } catch (err) {
+                if (nearestBox) nearestBox.innerText = 'حدث خطأ في استرجاع بيانات الجلسات.';
+            }
         }
 
         // Lawyer Registry View Logic
@@ -964,10 +996,15 @@
             const pending = cachedLawyerCases.filter(c => c.status === 'معلقة').length;
             const closed = cachedLawyerCases.filter(c => c.status === 'منتهية').length;
 
-            document.getElementById('stat-total-cases').innerText = total;
-            document.getElementById('stat-active-cases').innerText = active;
-            document.getElementById('stat-pending-cases').innerText = pending;
-            document.getElementById('stat-closed-cases').innerText = closed;
+            const elTotal = document.getElementById('stat-total-cases');
+            const elActive = document.getElementById('stat-active-cases');
+            const elPending = document.getElementById('stat-pending-cases');
+            const elClosed = document.getElementById('stat-closed-cases');
+
+            if (elTotal) elTotal.innerText = total;
+            if (elActive) elActive.innerText = active;
+            if (elPending) elPending.innerText = pending;
+            if (elClosed) elClosed.innerText = closed;
         }
 
         function filterRegistryByStatus(status) {
